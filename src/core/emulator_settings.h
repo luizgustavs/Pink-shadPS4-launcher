@@ -469,7 +469,7 @@ struct VulkanSettings {
     Setting<s32> gpu_id{-1};
     Setting<bool> renderdoc_enabled{false};
     Setting<bool> vkvalidation_enabled{false};
-    Setting<bool> vkvalidation_core_enabled{true};
+    Setting<bool> vkvalidation_core_enabled{false};
     Setting<bool> vkvalidation_sync_enabled{false};
     Setting<bool> vkvalidation_gpu_enabled{false};
     Setting<bool> vkcrash_diagnostic_enabled{false};
@@ -631,6 +631,10 @@ public:
         return m_vulkan.GetOverrideableFields();
     }
     std::vector<std::string> GetAllOverrideableKeys() const;
+    /// Returns the config section for a key, or an empty string if unknown
+    std::string GetOverrideableKeySection(const std::string& key) const;
+    /// Returns the saved per-game value, or null if the key is unknown
+    nlohmann::json GetOverrideableValue(const std::string& key) const;
 
 #define SETTING_FORWARD(group, Name, field)                                                        \
     auto Get##Name() const {                                                                       \

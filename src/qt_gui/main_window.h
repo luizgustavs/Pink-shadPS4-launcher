@@ -68,6 +68,7 @@ private:
     void LoadGameLists();
     void onGameClosed();
     void RunGame();
+    void ApplyWorkarounds(const std::filesystem::path& game_path);
     void PrintLog(QString entry, QColor textColor);
 
 #ifdef ENABLE_UPDATER

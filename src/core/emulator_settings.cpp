@@ -764,3 +764,51 @@ std::vector<std::string> EmulatorSettingsImpl::GetAllOverrideableKeys() const {
     addGroup(m_vulkan.GetOverrideableFields());
     return keys;
 }
+
+std::string EmulatorSettingsImpl::GetOverrideableKeySection(const std::string& key) const {
+    std::string section;
+    auto findIn = [&](const auto& group, const char* name) {
+        if (!section.empty())
+            return;
+        for (const auto& item : group.GetOverrideableFields()) {
+            if (key == item.key) {
+                section = name;
+                return;
+            }
+        }
+    };
+    findIn(m_general, "General");
+    findIn(m_log, "Log");
+    findIn(m_debug, "Debug");
+    findIn(m_input, "Input");
+    findIn(m_audio, "Audio");
+    // Windows guest red-zone settings
+    findIn(m_windows_guest_red_zone_protection, "WindowsGuestRedZoneProtection");
+    findIn(m_gpu, "GPU");
+    findIn(m_vulkan, "Vulkan");
+    return section;
+}
+
+json EmulatorSettingsImpl::GetOverrideableValue(const std::string& key) const {
+    json value;
+    auto findIn = [&](const auto& group) {
+        if (!value.is_null())
+            return;
+        for (const auto& item : group.GetOverrideableFields()) {
+            if (key == item.key) {
+                value = item.get_for_save(&group);
+                return;
+            }
+        }
+    };
+    findIn(m_general);
+    findIn(m_log);
+    findIn(m_debug);
+    findIn(m_input);
+    findIn(m_audio);
+    // Windows guest red-zone settings
+    findIn(m_windows_guest_red_zone_protection);
+    findIn(m_gpu);
+    findIn(m_vulkan);
+    return value;
+}

@@ -27,6 +27,7 @@
 #include "sdl_event_wrapper.h"
 #include "settings_dialog.h"
 #include "ui_settings_dialog.h"
+#include "workarounds_tab.h"
 
 #ifndef __APPLE__
 #define VOLK_IMPLEMENTATION
@@ -252,6 +253,14 @@ SettingsDialog::SettingsDialog(std::shared_ptr<gui_settings> gui_settings,
     InitializeEmulatorLanguages();
     LoadValuesFromConfig();
 
+    // Keep the tab name "Workarounds" in every language
+    m_workarounds_tab = new WorkaroundsTab(is_game_specific ? gs_serial : "", this);
+    ui->tabWidgetSettings->addTab(m_workarounds_tab, QStringLiteral("Workarounds"));
+    connect(m_workarounds_tab, &WorkaroundsTab::DescriptionChanged, this,
+            [this](const QString& text) {
+                ui->descriptionText->setText(text.isEmpty() ? defaultTextEdit : text);
+            });
+
     defaultTextEdit = tr("Point your mouse at an option to display its description.");
     ui->descriptionText->setText(defaultTextEdit);
 
@@ -269,6 +278,7 @@ SettingsDialog::SettingsDialog(std::shared_ptr<gui_settings> gui_settings,
         } else if (button == ui->buttonBox->button(QDialogButtonBox::RestoreDefaults)) {
             SetDefaultValues();
             EmulatorSettings.SetDefaultValues();
+            m_workarounds_tab->ResetToInherited();
             SaveSettings();
             LoadValuesFromConfig();
         } else if (button == ui->buttonBox->button(QDialogButtonBox::Close)) {
@@ -642,7 +652,7 @@ void SettingsDialog::closeEvent(QCloseEvent* event) {
 
 void SettingsDialog::LoadValuesFromConfig() {
     std::filesystem::path gs_config_file =
-        Common::FS::GetUserPath(Common::FS::PathType::CustomConfigs) / (gs_serial);
+        Common::FS::GetUserPath(Common::FS::PathType::CustomConfigs) / (gs_serial + ".json");
 
     std::error_code error;
     bool is_newly_created = false;
@@ -1316,6 +1326,7 @@ void SettingsDialog::SaveSettings() {
     } else {
         EmulatorSettings.Save();
     }
+    m_workarounds_tab->Save();
 };
 
 void SettingsDialog::PollSDLevents() {

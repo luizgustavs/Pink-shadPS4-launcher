@@ -336,6 +336,10 @@ set(QT_GUI src/qt_gui/about_dialog.cpp
            src/qt_gui/settings_dialog.cpp
            src/qt_gui/settings_dialog.h
            src/qt_gui/settings_dialog.ui
+           src/qt_gui/workarounds.cpp
+           src/qt_gui/workarounds.h
+           src/qt_gui/workarounds_tab.cpp
+           src/qt_gui/workarounds_tab.h
            src/qt_gui/gui_settings.cpp
            src/qt_gui/gui_settings.h
            src/qt_gui/settings.cpp
@@ -469,6 +473,12 @@ cmrc_add_resource_library(embedded-resources
         src/images/platinum.png
         src/images/silver.png)
 target_link_libraries(shadPS4QtLauncher PRIVATE res::embedded)
+
+# Keep shipped presets next to the launcher
+add_custom_command(TARGET shadPS4QtLauncher POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E copy_directory
+            "${CMAKE_CURRENT_SOURCE_DIR}/custom_configs"
+            "$<TARGET_FILE_DIR:shadPS4QtLauncher>/custom_configs")
 
 set_target_properties(shadPS4QtLauncher PROPERTIES
     WIN32_EXECUTABLE ON

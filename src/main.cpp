@@ -1,12 +1,18 @@
 // SPDX-FileCopyrightText: Copyright 2024 shadPS4 Emulator Project
 // SPDX-License-Identifier: GPL-2.0-or-later
 
+#include "algorithm"
 #include "iostream"
 #include "system_error"
 #include "unordered_map"
 
+#include <QDateTime>
+#include <QDir>
+#include <QFileInfo>
+
 #include "common/key_manager.h"
 #include "common/logging/log.h"
+#include "common/path_util.h"
 #include "common/versions.h"
 #include "core/emulator_settings.h"
 #include "core/emulator_state.h"
@@ -22,6 +28,71 @@ void customMessageHandler(QtMsgType, const QMessageLogContext&, const QString&) 
 
 void StopProgram() {
     exit(0);
+}
+
+// Use a nearby games folder and shadPS4 executable when no paths are configured
+static void AutoSetup() {
+    const auto base_dir = std::filesystem::current_path();
+    std::error_code ec;
+
+    if (EmulatorSettings.GetGameInstallDirs().empty()) {
+        const auto games_dir = base_dir / "games";
+        std::filesystem::create_directories(games_dir, ec);
+        if (!ec) {
+            EmulatorSettings.AddGameInstallDir(games_dir);
+            std::filesystem::create_directories(EmulatorSettings.GetAddonInstallDir(), ec);
+            EmulatorSettings.Save();
+        }
+    }
+
+    gui_settings settings{};
+    if (settings.GetValue(gui::vm_versionPath).toString().isEmpty()) {
+        QString version_dir;
+        Common::FS::PathToQString(version_dir,
+                                  Common::FS::GetUserPath(Common::FS::PathType::VersionDir));
+        settings.SetValue(gui::vm_versionPath, version_dir);
+    }
+
+    const QString selected_version = settings.GetValue(gui::vm_versionSelected).toString();
+    if (!selected_version.isEmpty() && QFileInfo::exists(selected_version)) {
+        return;
+    }
+
+#ifdef Q_OS_WIN
+    const QStringList exe_names{"shadPS4.exe"};
+#elif defined(Q_OS_LINUX)
+    const QStringList exe_names{"Shadps4-sdl.AppImage", "shadps4"};
+#else
+    const QStringList exe_names{"shadps4"};
+#endif
+
+    QString base_dir_string;
+    Common::FS::PathToQString(base_dir_string, base_dir);
+    const QStringList search_dirs{base_dir_string, QCoreApplication::applicationDirPath()};
+
+    for (const auto& dir : search_dirs) {
+        for (const auto& exe_name : exe_names) {
+            const QFileInfo exe_info(QDir(dir).filePath(exe_name));
+            if (!exe_info.isFile()) {
+                continue;
+            }
+
+            const std::string exe_path = exe_info.absoluteFilePath().toStdString();
+            const auto versions = VersionManager::GetVersionList();
+            if (std::none_of(versions.cbegin(), versions.cend(),
+                             [&](const auto& v) { return v.path == exe_path; })) {
+                VersionManager::AddNewVersion({
+                    .name = "shadPS4 (Local)",
+                    .path = exe_path,
+                    .date = QDateTime::currentDateTime().toString("yyyy-MM-dd").toStdString(),
+                    .codename = "Local",
+                    .type = VersionManager::VersionType::Custom,
+                });
+            }
+            settings.SetValue(gui::vm_versionSelected, QString::fromStdString(exe_path));
+            return;
+        }
+    }
 }
 
 int main(int argc, char* argv[]) {
@@ -149,7 +220,11 @@ int main(int argc, char* argv[]) {
         }
     }
 
-    // If no game directories are set and no command line argument, prompt for it
+    if (!has_command_line_argument) {
+        AutoSetup();
+    }
+
+    // Ask for a game directory if automatic setup could not find one
     if (EmulatorSettings.GetGameInstallDirsEnabled().empty() && !has_command_line_argument) {
         GameInstallDialog dlg;
         dlg.exec();

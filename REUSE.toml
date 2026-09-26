@@ -18,6 +18,7 @@ path = [
     "dist/net.shadps4.shadps4-qtlauncher.desktop",
     "dist/net.shadps4.shadps4-qtlauncher.metainfo.xml",
     "dist/net.shadps4.shadps4-qtlauncher_metadata.pot",
+    "custom_configs/*.json",
     "dist/qt.conf",
     "documents/changelog.md",
     "documents/Quickstart/2.png",

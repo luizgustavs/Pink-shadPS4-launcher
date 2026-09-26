@@ -19,6 +19,8 @@ namespace Ui {
 class SettingsDialog;
 }
 
+class WorkaroundsTab;
+
 class SettingsDialog : public QDialog {
     Q_OBJECT
 public:
@@ -68,4 +70,5 @@ private:
     std::unique_ptr<Ui::SettingsDialog> ui;
     std::shared_ptr<gui_settings> m_gui_settings;
     std::shared_ptr<IpcClient> m_ipc_client;
+    WorkaroundsTab* m_workarounds_tab = nullptr;
 };

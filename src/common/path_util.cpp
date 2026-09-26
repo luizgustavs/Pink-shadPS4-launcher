@@ -91,7 +91,8 @@ static auto UserPaths = [] {
 #endif
 
     // Try the portable launcher directory first.
-    auto user_dir = std::filesystem::current_path() / PORTABLE_DIR;
+    const auto portable_user_dir = std::filesystem::current_path() / PORTABLE_DIR;
+    auto user_dir = portable_user_dir;
     if (!std::filesystem::exists(user_dir)) {
         // If it doesn't exist, use the standard path for the platform instead.
         // NOTE: On Windows we currently just create the portable directory instead.
@@ -110,6 +111,10 @@ static auto UserPaths = [] {
         SHGetFolderPath(NULL, CSIDL_APPDATA, NULL, 0, appdata);
         user_dir = std::filesystem::path(appdata) / "shadPS4";
 #endif
+        // On first run, keep user data beside the launcher
+        if (!std::filesystem::exists(user_dir)) {
+            user_dir = portable_user_dir;
+        }
     }
 
     // Try the portable user directory first.

@@ -32,6 +32,7 @@
 #include "settings_dialog.h"
 #include "skylander_dialog.h"
 #include "user_manager_dialog.h"
+#include "workarounds.h"
 
 MainWindow::MainWindow(QWidget* parent, bool log_to_terminal)
     : QMainWindow(parent), ui(new Ui::MainWindow),
@@ -1450,6 +1451,7 @@ tr("No emulator version was selected.\nThe Version Manager menu will then open.\
 
     EmulatorState::GetInstance()->SetGameRunning(true);
     last_game_path = path;
+    ApplyWorkarounds(path);
 
     QString workDir = QDir::currentPath();
     m_ipc_client->startEmulator(fileInfo, final_args, workDir);
@@ -1528,8 +1530,25 @@ void MainWindow::StartEmulatorExecutable(std::filesystem::path emuPath, QString 
     }
 
     EmulatorState::GetInstance()->SetGameRunning(true);
+    if (gameFound) {
+        ApplyWorkarounds(last_game_path);
+    }
     QString workDir = QDir::currentPath();
     m_ipc_client->startEmulator(fileInfo, args, workDir, disable_ipc);
+}
+
+void MainWindow::ApplyWorkarounds(const std::filesystem::path& game_path) {
+    // Accept an eboot.bin, game folder, or .zar archive
+    auto game_root = game_path;
+    std::error_code ec;
+    if (!std::filesystem::is_directory(game_root, ec) &&
+        !Core::FileSys::IsZArchiveFile(game_root)) {
+        game_root = game_root.parent_path();
+    }
+    const auto serial = GameInfoClass::readGameInfo(game_root).serial;
+    if (!serial.empty()) {
+        Workarounds::WriteOverlay(serial);
+    }
 }
 
 void MainWindow::RunGame() {

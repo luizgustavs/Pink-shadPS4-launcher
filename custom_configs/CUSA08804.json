@@ -1,0 +1,19 @@
+{
+  "Workarounds": {
+    "compute_loop_cap": 1048576,
+    "preserve_split_protection": true,
+    "cpu_authoritative_stacks": true,
+    "bpe_heap_guard_address": 13713341728,
+    "lds_barrier_uniform_readlane": true,
+    "early_fragment_tests_from_z_order": true,
+    "lod_stats_from_bindings": true,
+    "dynamic_tsharp_array_size": 16,
+    "wave64_uniform_branches": true,
+    "extra_dmem_in_mbytes": 512,
+    "filter": "*:Warning Render.Vulkan:Warning Tty:Info",
+    "direct_memory_access_enabled": true,
+    "readbacks_mode": 2,
+    "pipeline_cache_enabled": true,
+    "windows_guest_red_zone_protection_mode": "Disabled"
+  }
+}
