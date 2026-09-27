@@ -26,17 +26,37 @@ constexpr std::int64_t kIntMax = std::numeric_limits<std::int32_t>::max();
 constexpr std::int64_t kUInt64Max = std::numeric_limits<std::int64_t>::max();
 
 // List only keys this emulator supports
-// Add these old SotC fork keys once they are ported:
-//   GPU: srt_walker_clean_reads, shader_code_clean_reads, readback_writer_tick, readback_flush_writer, gpu_srt_constants,
-//        bpe_guard_skip_offheap, periodic_flush_commands, flush_ahead_min_commands
-//   General: redirect_app0_logs
-//   Audio: audio_follow_game_speed, audio_min_game_speed, audio_game_target_fps
-// Leave out drop_stale_gpu_ranges (obsolete), eop_wait_idle and dma_precache_mapped_memory (both caused regressions)
+// Add these SotC fork keys once they are ported:
+//   GPU: readback_flush_writer, gpu_srt_constants, bpe_guard_skip_offheap,
+//        flush_ahead_min_commands (old readback path), image_memory_pool, readback_shadow,
+//        hot_write_pages
+//   General: user_mode_guest_mutex
+// Leave out drop_stale_gpu_ranges (obsolete), eop_wait_idle and dma_precache_mapped_memory (both
+// caused regressions), and readback_writer_tick (replaced by readback_ahead)
 // clang-format off
 const std::vector<KeyInfo> kKnownKeys = {
     {"extra_fmem_in_mbytes", "General", ValueType::Int, 0, 0, kIntMax,
      QT_TRANSLATE_NOOP("Workarounds", "Extra flexible memory (MB)"),
      QT_TRANSLATE_NOOP("Workarounds", "Adds flexible memory for games that run out of it.")},
+    {"redirect_app0_logs", "General", ValueType::Bool, 0, 0, 1,
+     QT_TRANSLATE_NOOP("Workarounds", "Writable game log folder"),
+     QT_TRANSLATE_NOOP("Workarounds", "Mounts user/game_logs/<serial> writable at /app0/logs, for games that write their own engine log next to the executable (SotC).")},
+    {"cpu_affinity_mask", "General", ValueType::UInt64, 0, 0, kUInt64Max,
+     QT_TRANSLATE_NOOP("Workarounds", "CPU affinity mask"),
+     QT_TRANSLATE_NOOP("Workarounds", "Windows: pins the emulator to these logical CPUs at startup (0 = off). On a two-CCD Ryzen, the faster CCD avoids ~10% slower runs (0xFFFF on a 9950X). Depends on the CPU: a wrong mask leaves too few cores. Accepts hexadecimal (0x...).")},
+    {"poll_connected_pads_only", "General", ValueType::Bool, 0, 0, 1,
+     QT_TRANSLATE_NOOP("Workarounds", "Poll connected pads only"),
+     QT_TRANSLATE_NOOP("Workarounds", "One 8 ms input timer for the keyboard/first pad and the connected pads, instead of four 4 ms ones. Halves the input thread's CPU use; input is read at 125 Hz instead of 250 Hz.")},
+
+    {"audio_follow_game_speed", "Audio", ValueType::Bool, 0, 0, 1,
+     QT_TRANSLATE_NOOP("Workarounds", "Audio follows game speed"),
+     QT_TRANSLATE_NOOP("Workarounds", "When the game runs below its target frame rate, audio plays slower (lower pitch) instead of crackling.")},
+    {"audio_min_game_speed", "Audio", ValueType::Int, 10, 5, 100,
+     QT_TRANSLATE_NOOP("Workarounds", "Lowest audio speed (%)"),
+     QT_TRANSLATE_NOOP("Workarounds", "Slowest audio playback speed when audio follows game speed.")},
+    {"audio_game_target_fps", "Audio", ValueType::Int, 0, 0, kIntMax,
+     QT_TRANSLATE_NOOP("Workarounds", "Game target frame rate"),
+     QT_TRANSLATE_NOOP("Workarounds", "Frame rate that counts as full speed when audio follows game speed (0 = from the game's flip rate).")},
 
     {"compute_loop_cap", "GPU", ValueType::Int, 0, 0, kIntMax,
      QT_TRANSLATE_NOOP("Workarounds", "Compute loop cap"),
@@ -69,6 +89,34 @@ const std::vector<KeyInfo> kKnownKeys = {
     {"gpu_checkpoints", "GPU", ValueType::Bool, 0, 0, 1,
      QT_TRANSLATE_NOOP("Workarounds", "GPU crash checkpoints (diagnostic)"),
      QT_TRANSLATE_NOOP("Workarounds", "Records every GPU command and submit, with NVIDIA checkpoints when available, and names the command that was running when the GPU is lost. Costs some performance.")},
+
+    {"srt_walker_clean_reads", "GPU", ValueType::Bool, 0, 0, 1,
+     QT_TRANSLATE_NOOP("Workarounds", "SRT walker clean reads"),
+     QT_TRANSLATE_NOOP("Workarounds", "Shader resource table reads of bytes the GPU never wrote come from guest memory, instead of a readback that drains the GPU. Use with shader code clean reads. Changes the SRT walker code.")},
+    {"shader_code_clean_reads", "GPU", ValueType::Bool, 0, 0, 1,
+     QT_TRANSLATE_NOOP("Workarounds", "Shader code clean reads"),
+     QT_TRANSLATE_NOOP("Workarounds", "Caches shader binary info per code address and checks the bytes the GPU never wrote in guest memory, instead of a readback that drains the GPU. Use with SRT walker clean reads.")},
+    {"readback_ahead", "GPU", ValueType::Bool, 0, 0, 1,
+     QT_TRANSLATE_NOOP("Workarounds", "Readback ahead"),
+     QT_TRANSLATE_NOOP("Workarounds", "Copies a GPU readback in a command buffer submitted ahead of the current one when nothing recorded there writes those bytes, instead of submitting and waiting for all recorded work.")},
+    {"periodic_flush_commands", "GPU", ValueType::Int, 0, 0, kIntMax,
+     QT_TRANSLATE_NOOP("Workarounds", "Periodic flush (commands)"),
+     QT_TRANSLATE_NOOP("Workarounds", "Submits without waiting after this many guest draws/dispatches (0 = off; SotC uses 64), so the GPU works while the frame is recorded. Only with readback ahead: without it the GPU was lost once. If the GPU is lost, set this to 0 first.")},
+    {"readback_ahead_transfer_queue", "GPU", ValueType::Bool, 0, 0, 1,
+     QT_TRANSLATE_NOOP("Workarounds", "Readback ahead on the copy engine"),
+     QT_TRANSLATE_NOOP("Workarounds", "Readback-ahead copies run on a transfer-only queue and wait only for the last writer of the copied bytes. Needs readback ahead and a transfer-only queue family (no effect otherwise); buffers become shared between the queues.")},
+    {"wait_spin_us", "GPU", ValueType::Int, 0, 0, kIntMax,
+     QT_TRANSLATE_NOOP("Workarounds", "GPU wait spin (us)"),
+     QT_TRANSLATE_NOOP("Workarounds", "Polls the GPU for up to this many microseconds before sleeping on a GPU wait (0 = off; SotC uses 200). Wakes up sooner, but each such wait keeps a CPU core busy for up to this long.")},
+    {"dma_sweep_skip_stacks", "GPU", ValueType::Bool, 0, 0, 1,
+     QT_TRANSLATE_NOOP("Workarounds", "DMA sync skips stacks"),
+     QT_TRANSLATE_NOOP("Workarounds", "Leaves guest stacks out of the DMA sync sweep, which re-uploaded every resident stack. Bindings that cover a stack still upload it. Only works with CPU-authoritative stacks.")},
+    {"gpu_overhead_cuts", "GPU", ValueType::Bool, 0, 0, 1,
+     QT_TRANSLATE_NOOP("Workarounds", "GPU overhead cuts"),
+     QT_TRANSLATE_NOOP("Workarounds", "Detiles textures uploaded from guest memory out of VRAM instead of across PCIe, and skips binding a pipeline that is already bound.")},
+    {"cp_recording_cuts", "GPU", ValueType::Bool, 0, 0, 1,
+     QT_TRANSLATE_NOOP("Workarounds", "Command recording cuts"),
+     QT_TRANSLATE_NOOP("Workarounds", "Caches mapped-memory lookups and skips repeated DMA syncs while recording GPU commands. Faster, but caused rare visual glitches in SotC's intro, so its preset leaves it off.")},
 };
 // clang-format on
 
