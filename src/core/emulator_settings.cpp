@@ -309,6 +309,29 @@ bool EmulatorSettingsImpl::Save(const std::string& serial) {
             SaveGroupGameSpecific(m_vulkan, vulkanObj);
             j["Vulkan"] = vulkanObj;
 
+            // Keep keys and sections unknown to this build, such as emulator-only workarounds.
+            // Known keys missing from j were reset to the global value, so they stay removed
+            json existing = json::object();
+            if (std::ifstream existingIn{path}; existingIn.good()) {
+                existing = json::parse(existingIn, nullptr, false);
+            }
+            if (existing.is_object()) {
+                for (const auto& [section, keys] : existing.items()) {
+                    if (!j.contains(section)) {
+                        j[section] = keys;
+                        continue;
+                    }
+                    if (!keys.is_object()) {
+                        continue;
+                    }
+                    for (const auto& [key, value] : keys.items()) {
+                        if (GetOverrideableKeySection(key) != section) {
+                            j[section][key] = value;
+                        }
+                    }
+                }
+            }
+
             std::ofstream out(path);
             if (!out) {
                 LOG_ERROR(Config, "Failed to open game config for writing: {}", path.string());
