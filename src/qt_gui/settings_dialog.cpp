@@ -74,6 +74,7 @@ const QVector<int> languageIndexes = {21, 23, 14, 6, 18, 1, 12, 22, 2, 4,  25, 2
                                       15, 16, 17, 7, 26, 8, 11, 20, 3, 13, 27, 10, 19, 30, 28};
 QMap<QString, QString> channelMap;
 QMap<QString, QString> logTypeMap;
+QMap<QString, QString> logConsoleModeMap;
 QMap<QString, QString> screenModeMap;
 QMap<QString, QString> presentModeMap;
 QMap<QString, QString> chooseHomeTabMap;
@@ -172,6 +173,7 @@ SettingsDialog::SettingsDialog(std::shared_ptr<gui_settings> gui_settings,
     ui->buttonBox->button(QDialogButtonBox::StandardButton::Close)->setFocus();
 
     logTypeMap = {{tr("wincolor"), "wincolor"}, {tr("msvc"), "msvc"}};
+    logConsoleModeMap = {{tr("All messages"), "all"}, {tr("Events only"), "events"}};
     screenModeMap = {{tr("Fullscreen (Borderless)"), "Fullscreen (Borderless)"},
                      {tr("Windowed"), "Windowed"},
                      {tr("Fullscreen"), "Fullscreen"}};
@@ -596,6 +598,7 @@ SettingsDialog::SettingsDialog(std::shared_ptr<gui_settings> gui_settings,
         ui->logSkipDuplicateCheckBox->installEventFilter(this);
         ui->logSyncCheckBox->installEventFilter(this);
         ui->logTypeGroupBox->installEventFilter(this);
+        ui->logConsoleModeGroupBox->installEventFilter(this);
 
         // Debug
         ui->debugDump->installEventFilter(this);
@@ -796,6 +799,11 @@ void SettingsDialog::LoadValuesFromConfig() {
     ui->logSkipDuplicateCheckBox->setChecked(EmulatorSettings.IsLogSkipDuplicate());
     ui->logMaxSkipDurationGroupBox->setVisible(ui->logSkipDuplicateCheckBox->isChecked());
     ui->logSyncCheckBox->setChecked(EmulatorSettings.IsLogSync());
+    QString translatedText_logConsoleMode =
+        logConsoleModeMap.key(QString::fromStdString(EmulatorSettings.GetLogConsoleMode()));
+    if (!translatedText_logConsoleMode.isEmpty()) {
+        ui->logConsoleModeComboBox->setCurrentText(translatedText_logConsoleMode);
+    }
 #ifdef _WIN32
     std::string logType = EmulatorSettings.GetLogType();
     QString translatedText_logType = logTypeMap.key(QString::fromStdString(logType));
@@ -979,6 +987,8 @@ void SettingsDialog::updateNoteTextEdit(const QString& elementName) {
         text = tr("Log Sync:\\nSwitch between sync (order) or async (performance).");
     } else if (elementName == "logTypeGroupBox") {
         text = tr("Log Type:\\nChoose between wincolor or msvc log types.\\nwincolor: Default logging for Windows\\nmsvc: Logging for debugging");
+    } else if (elementName == "logConsoleModeGroupBox") {
+        text = tr("Console Mode:\\nWhat the console window shows. The log file always keeps everything.\\nAll messages: the console mirrors the log file.\\nEvents only: crashes, broken shaders, render problems (device lost, validation errors) and Critical messages, plus a summary of the most repeated warnings on exit.");
     }
 
     //User
@@ -1174,6 +1184,9 @@ void SettingsDialog::UpdateSettings(bool is_specific) {
     EmulatorSettings.SetLogSizeLimit(ui->logSizeLimitLineEdit->value(), is_specific);
     EmulatorSettings.SetLogSkipDuplicate(ui->logSkipDuplicateCheckBox->isChecked(), is_specific);
     EmulatorSettings.SetLogSync(ui->logSyncCheckBox->isChecked(), is_specific);
+    EmulatorSettings.SetLogConsoleMode(
+        logConsoleModeMap.value(ui->logConsoleModeComboBox->currentText()).toStdString(),
+        is_specific);
 #ifdef _WIN32
     EmulatorSettings.SetLogType(logTypeMap.value(ui->logTypeComboBox->currentText()).toStdString(),
                                 is_specific);

@@ -2091,6 +2091,29 @@
               </layout>
              </widget>
             </item>
+            <item>
+             <widget class="QGroupBox" name="logConsoleModeGroupBox">
+              <property name="title">
+               <string>Console Mode</string>
+              </property>
+              <layout class="QVBoxLayout" name="logConsoleModeBoxLayout">
+               <item>
+                <widget class="QComboBox" name="logConsoleModeComboBox">
+                 <item>
+                  <property name="text">
+                   <string>All messages</string>
+                  </property>
+                 </item>
+                 <item>
+                  <property name="text">
+                   <string>Events only</string>
+                  </property>
+                 </item>
+                </widget>
+               </item>
+              </layout>
+             </widget>
+            </item>
            </layout>
           </item>
           <item>
