@@ -464,6 +464,8 @@ target_include_directories(shadPS4QtLauncher PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}
 # embed resources
 
 include("${CMAKE_CURRENT_SOURCE_DIR}/cmake/CMakeRC.cmake")
+# The launcher writes the shipped presets next to itself and upgrades older copies
+file(GLOB LAUNCHER_PRESETS CONFIGURE_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/custom_configs/*.json")
 cmrc_add_resource_library(embedded-resources
         ALIAS res::embedded
         NAMESPACE res
@@ -471,14 +473,9 @@ cmrc_add_resource_library(embedded-resources
         src/images/bronze.png
         src/images/gold.png
         src/images/platinum.png
-        src/images/silver.png)
+        src/images/silver.png
+        ${LAUNCHER_PRESETS})
 target_link_libraries(shadPS4QtLauncher PRIVATE res::embedded)
-
-# Keep shipped presets next to the launcher
-add_custom_command(TARGET shadPS4QtLauncher POST_BUILD
-    COMMAND ${CMAKE_COMMAND} -E copy_directory
-            "${CMAKE_CURRENT_SOURCE_DIR}/custom_configs"
-            "$<TARGET_FILE_DIR:shadPS4QtLauncher>/custom_configs")
 
 set_target_properties(shadPS4QtLauncher PROPERTIES
     WIN32_EXECUTABLE ON

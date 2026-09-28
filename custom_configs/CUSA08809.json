@@ -1,4 +1,5 @@
 {
+  "version": 1,
   "Workarounds": {
     "compute_loop_cap": 1048576,
     "preserve_split_protection": true,
@@ -19,7 +20,6 @@
     "gpu_overhead_cuts": true,
     "redirect_app0_logs": true,
     "poll_connected_pads_only": true,
-    "extra_dmem_in_mbytes": 512,
     "filter": "*:Warning Render.Vulkan:Warning Tty:Info",
     "direct_memory_access_enabled": true,
     "readbacks_mode": 2,

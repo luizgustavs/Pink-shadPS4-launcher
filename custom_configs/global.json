@@ -1,3 +1,7 @@
 {
-  "Workarounds": {}
+  "version": 1,
+  "Workarounds": {
+    "cp_recording_cuts": true,
+    "extra_dmem_in_mbytes": 512
+  }
 }

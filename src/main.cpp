@@ -19,6 +19,7 @@
 #include "core/user_settings.h"
 #include "qt_gui/game_install_dialog.h"
 #include "qt_gui/main_window.h"
+#include "qt_gui/workarounds.h"
 #ifdef _WIN32
 #include <windows.h>
 #endif
@@ -120,6 +121,9 @@ int main(int argc, char* argv[]) {
     // Start configured log
     Common::Log::g_should_append |= EmulatorSettings.IsLogAppend();
     Common::Log::Setup("shadPS4Launcher.log");
+
+    Workarounds::UpdateLauncherPresets();
+    Workarounds::MigrateUserPresets();
 
     std::shared_ptr<KeyManager> m_key_manager = std::make_shared<KeyManager>();
     KeyManager::SetInstance(m_key_manager); // initialize singleton instance

@@ -143,6 +143,8 @@ SettingsDialog::SettingsDialog(std::shared_ptr<gui_settings> gui_settings,
     ui->logFilterLineEdit->setClearButtonEnabled(true);
 
     if (is_game_specific) {
+        // A new game config starts from the presets, so the tabs show and save their values
+        Workarounds::CreateGameConfig(gs_serial);
         EmulatorSettings.Load(gs_serial);
     } else {
         EmulatorSettings.Load();

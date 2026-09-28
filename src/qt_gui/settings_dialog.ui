@@ -242,6 +242,49 @@
                  </layout>
                 </widget>
                </item>
+               <item>
+                <widget class="QGroupBox" name="dmemGroupBox">
+                 <property name="title">
+                  <string>Additional DMem Allocation</string>
+                 </property>
+                 <layout class="QVBoxLayout" name="verticalLayout_4">
+                  <item>
+                   <widget class="QSpinBox" name="dmemSpinBox">
+                    <property name="frame">
+                     <bool>true</bool>
+                    </property>
+                    <property name="alignment">
+                     <set>Qt::AlignmentFlag::AlignLeading|Qt::AlignmentFlag::AlignLeft|Qt::AlignmentFlag::AlignVCenter</set>
+                    </property>
+                    <property name="specialValueText">
+                     <string/>
+                    </property>
+                    <property name="accelerated">
+                     <bool>true</bool>
+                    </property>
+                    <property name="correctionMode">
+                     <enum>QAbstractSpinBox::CorrectionMode::CorrectToNearestValue</enum>
+                    </property>
+                    <property name="keyboardTracking">
+                     <bool>false</bool>
+                    </property>
+                    <property name="suffix">
+                     <string notr="true">MB</string>
+                    </property>
+                    <property name="minimum">
+                     <number>0</number>
+                    </property>
+                    <property name="maximum">
+                     <number>100000</number>
+                    </property>
+                    <property name="value">
+                     <number>0</number>
+                    </property>
+                   </widget>
+                  </item>
+                 </layout>
+                </widget>
+               </item>
               </layout>
              </widget>
             </item>
@@ -2637,49 +2680,6 @@
             </item>
             <item>
              <layout class="QVBoxLayout" name="verticalLayout_10">
-              <item>
-               <widget class="QGroupBox" name="dmemGroupBox">
-                <property name="title">
-                 <string>Additional DMem Allocation</string>
-                </property>
-                <layout class="QVBoxLayout" name="verticalLayout_4">
-                 <item>
-                  <widget class="QSpinBox" name="dmemSpinBox">
-                   <property name="frame">
-                    <bool>true</bool>
-                   </property>
-                   <property name="alignment">
-                    <set>Qt::AlignmentFlag::AlignLeading|Qt::AlignmentFlag::AlignLeft|Qt::AlignmentFlag::AlignVCenter</set>
-                   </property>
-                   <property name="specialValueText">
-                    <string/>
-                   </property>
-                   <property name="accelerated">
-                    <bool>true</bool>
-                   </property>
-                   <property name="correctionMode">
-                    <enum>QAbstractSpinBox::CorrectionMode::CorrectToNearestValue</enum>
-                   </property>
-                   <property name="keyboardTracking">
-                    <bool>false</bool>
-                   </property>
-                   <property name="suffix">
-                    <string notr="true">MB</string>
-                   </property>
-                   <property name="minimum">
-                    <number>0</number>
-                   </property>
-                   <property name="maximum">
-                    <number>100000</number>
-                   </property>
-                   <property name="value">
-                    <number>0</number>
-                   </property>
-                  </widget>
-                 </item>
-                </layout>
-               </widget>
-              </item>
               <item>
                <widget class="QGroupBox" name="heightDivider">
                 <property name="title">

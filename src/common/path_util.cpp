@@ -90,8 +90,26 @@ static auto UserPaths = [] {
     }
 #endif
 
+#ifdef _WIN32
+    // Always keep data beside the launcher executable, whatever the working directory is
+    const auto base_dir = [] {
+        std::wstring exe_path(MAX_PATH, L'\0');
+        DWORD length;
+        while ((length = GetModuleFileNameW(nullptr, exe_path.data(),
+                                            static_cast<DWORD>(exe_path.size()))) ==
+               exe_path.size()) {
+            exe_path.resize(exe_path.size() * 2);
+        }
+        exe_path.resize(length);
+        return length > 0 ? std::filesystem::path(exe_path).parent_path()
+                          : std::filesystem::current_path();
+    }();
+    const auto user_dir = base_dir / PORTABLE_DIR;
+#else
+    const auto base_dir = std::filesystem::current_path();
+
     // Try the portable launcher directory first.
-    const auto portable_user_dir = std::filesystem::current_path() / PORTABLE_DIR;
+    const auto portable_user_dir = base_dir / PORTABLE_DIR;
     auto user_dir = portable_user_dir;
     if (!std::filesystem::exists(user_dir)) {
         // If it doesn't exist, use the standard path for the platform instead.
@@ -106,19 +124,16 @@ static auto UserPaths = [] {
         } else {
             user_dir = std::filesystem::path(getenv("HOME")) / ".local" / "share" / "shadPS4";
         }
-#elif _WIN32
-        TCHAR appdata[MAX_PATH] = {0};
-        SHGetFolderPath(NULL, CSIDL_APPDATA, NULL, 0, appdata);
-        user_dir = std::filesystem::path(appdata) / "shadPS4";
 #endif
         // On first run, keep user data beside the launcher
         if (!std::filesystem::exists(user_dir)) {
             user_dir = portable_user_dir;
         }
     }
+#endif
 
     // Try the portable user directory first.
-    auto launcher_dir = std::filesystem::current_path() / PORTABLE_LAUNCHER_DIR;
+    auto launcher_dir = base_dir / PORTABLE_LAUNCHER_DIR;
     if (!std::filesystem::exists(launcher_dir)) {
         // If it doesn't exist, use the standard path for the platform instead.
         // NOTE: On Windows we currently just create the portable directory instead.

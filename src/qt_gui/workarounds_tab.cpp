@@ -17,7 +17,6 @@
 #include <QVBoxLayout>
 
 #include "common/path_util.h"
-#include "core/emulator_settings.h"
 #include "workarounds_tab.h"
 
 using json = nlohmann::json;
@@ -28,33 +27,6 @@ QString NativePath(const std::filesystem::path& path) {
     QString result;
     Common::FS::PathToQString(result, path);
     return QDir::toNativeSeparators(result);
-}
-
-// Show friendly names for regular settings used by presets
-struct RegularKeyText {
-    const char* key;
-    const char* label;
-    const char* description;
-};
-
-// clang-format off
-constexpr RegularKeyText kRegularKeyTexts[] = {
-    {"extra_dmem_in_mbytes",
-     QT_TRANSLATE_NOOP("Workarounds", "Extra direct memory (MB)"),
-     QT_TRANSLATE_NOOP("Workarounds", "Adds direct memory for games that run out of it. Crashes or causes issues in some games. Same as Additional DMem Allocation in the General tab.")},
-    {"filter",
-     QT_TRANSLATE_NOOP("Workarounds", "Log filter"),
-     QT_TRANSLATE_NOOP("Workarounds", "Filters the log to only print specific information. Same as Log Filter in the Log tab.")},
-};
-// clang-format on
-
-const RegularKeyText* FindRegularKeyText(const std::string& key) {
-    for (const auto& text : kRegularKeyTexts) {
-        if (key == text.key) {
-            return &text;
-        }
-    }
-    return nullptr;
 }
 
 } // namespace
@@ -89,7 +61,7 @@ WorkaroundsTab::WorkaroundsTab(std::string serial, QWidget* parent)
         if (std::filesystem::exists(overlay, ec) && !Workarounds::IsGeneratedOverlay(overlay)) {
             auto* warning = new QLabel(
                 tr("%1 was not created by the launcher, so the emulator uses it instead of these "
-                   "workarounds. Move it to %2 to use both.")
+                   "workarounds. Move its settings to %2 to use both.")
                     .arg(NativePath(overlay), NativePath(own_layer.path)));
             warning->setWordWrap(true);
             warning->setStyleSheet("color: #d9534f;");
@@ -97,16 +69,7 @@ WorkaroundsTab::WorkaroundsTab(std::string serial, QWidget* parent)
         }
     }
 
-    // Include preset keys already shown in the regular tabs
-    std::map<std::string, std::string> regular_keys;
-    for (const auto& layer : m_layers) {
-        for (const auto& [key, entry] : layer.entries) {
-            if (!Workarounds::FindKnownKey(key)) {
-                regular_keys[key] = entry.section;
-            }
-        }
-    }
-    m_rows.reserve(Workarounds::GetKnownKeys().size() + regular_keys.size());
+    m_rows.reserve(Workarounds::GetKnownKeys().size());
 
     std::map<QString, QVBoxLayout*> groups;
     auto group_for = [&](const QString& title) -> QVBoxLayout* {
@@ -191,22 +154,6 @@ WorkaroundsTab::WorkaroundsTab(std::string serial, QWidget* parent)
                 tr("Default"), &info, label, description);
     }
 
-    for (const auto& [key, section] : regular_keys) {
-        const QString name = QString::fromStdString(key);
-        QString label = name;
-        QString description = tr("%1:\nA regular setting (%2 section) that a preset changes.")
-                                  .arg(name, QString::fromStdString(section));
-        if (const auto* text = FindRegularKeyText(key)) {
-            label = QCoreApplication::translate("Workarounds", text->label);
-            description = QString("%1 (%2):\n%3")
-                              .arg(label, name,
-                                   QCoreApplication::translate("Workarounds", text->description));
-        }
-        add_row(group_for(tr("Other settings set by presets")), Row{key, section},
-                EmulatorSettings.GetOverrideableValue(key), tr("Current settings"), nullptr, label,
-                description);
-    }
-
     layout->addStretch();
 
     auto* scroll = new QScrollArea;
@@ -229,15 +176,21 @@ bool WorkaroundsTab::eventFilter(QObject* obj, QEvent* event) {
 }
 
 void WorkaroundsTab::Save() {
+    std::vector<std::string> keys;
     Workarounds::Entries entries;
     for (const auto& row : m_rows) {
+        keys.push_back(row.key);
         json value = ReadEditor(row);
         if (value != row.inherited) {
             entries[row.key] = {row.section, std::move(value)};
         }
     }
-    if (Workarounds::SaveUserLayer(m_layers.back().path, entries)) {
-        m_layers.back().entries = std::move(entries);
+    auto& own_layer = m_layers.back();
+    if (Workarounds::SaveUserLayer(own_layer.path, keys, entries)) {
+        for (const auto& key : keys) {
+            own_layer.entries.erase(key);
+        }
+        own_layer.entries.merge(entries);
     }
 }
 
